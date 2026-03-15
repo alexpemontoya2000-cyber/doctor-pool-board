@@ -1,8 +1,1 @@
-{
-  "buildCommand": null,
-  "outputDirectory": ".",
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/", "destination": "/doctor_pool_execution_board.html" }
-  ]
-}
+{"cleanUrls": true}
