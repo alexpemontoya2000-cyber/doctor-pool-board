@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -119,6 +120,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .reset-btn{background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 18px;font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);cursor:pointer}
 .reset-btn:hover{border-color:var(--red);color:var(--red)}
 
+/* SYNC INDICATOR */
+.sync-badge{font-size:10px;font-family:'Space Mono',monospace;padding:3px 10px;border-radius:99px;position:fixed;bottom:16px;right:16px;z-index:200;transition:all 0.3s;pointer-events:none}
+.sync-saved{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.sync-saving{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber)}
+.sync-offline{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+.sync-hidden{opacity:0;transform:translateY(8px)}
+
+/* CLIENT SELECTOR */
+.client-list{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+.client-chip{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 14px;font-family:'Space Mono',monospace;font-size:11px;color:var(--text2);cursor:pointer;transition:all 0.2s}
+.client-chip:hover{border-color:var(--amber);color:var(--amber)}
+.client-chip .chip-progress{font-size:10px;color:var(--text3);margin-left:6px}
+.clients-title{font-size:11px;font-family:'Space Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-top:18px;margin-bottom:8px}
+
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:var(--bg)}
@@ -168,7 +183,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
     </div>
   </div>
   <button class="start-btn" id="start-btn" onclick="startFlow()" disabled>INICIAR FLUJO →</button>
+  <div class="clients-title" id="clients-title" style="display:none">// clientes existentes</div>
+  <div class="client-list" id="client-list"></div>
 </div>
+
+<div class="sync-badge sync-hidden" id="sync-badge"></div>
 
 <!-- CONTENT -->
 <div id="flow-content" style="display:none" class="fade-in">
@@ -415,95 +434,255 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 </div><!-- end main -->
 
 <script>
+/* ═══════════════════════════════════════
+   SUPABASE INIT
+   ═══════════════════════════════════════ */
+const SUPABASE_URL = 'https://svgscwvogizfbyjoqjhg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_wGZ39tAWJDozWZxcCf_atA_KcWjWA34';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 let cliente = '';
 let nicho = '';
+let clienteId = null;
 let done = new Array(9).fill(false);
 let open = new Array(9).fill(false);
+let isOnline = navigator.onLine;
 
 const inpC = document.getElementById('inp-cliente');
 const inpN = document.getElementById('inp-nicho');
 const startBtn = document.getElementById('start-btn');
+const syncBadge = document.getElementById('sync-badge');
 
 inpC.addEventListener('input', checkStart);
 inpN.addEventListener('input', checkStart);
 
-function checkStart(){
+window.addEventListener('online', () => { isOnline = true; syncOfflineQueue(); });
+window.addEventListener('offline', () => { isOnline = false; });
+
+/* ═══════════════════════════════════════
+   SYNC INDICATOR
+   ═══════════════════════════════════════ */
+let syncTimer = null;
+function showSync(type, text) {
+  syncBadge.className = 'sync-badge sync-' + type;
+  syncBadge.textContent = text;
+  clearTimeout(syncTimer);
+  if (type === 'saved') {
+    syncTimer = setTimeout(() => { syncBadge.classList.add('sync-hidden'); }, 2000);
+  }
+}
+
+/* ═══════════════════════════════════════
+   OFFLINE QUEUE
+   ═══════════════════════════════════════ */
+function getOfflineQueue() {
+  try { return JSON.parse(localStorage.getItem('dp_offline_queue') || '[]'); }
+  catch { return []; }
+}
+function saveOfflineQueue(q) {
+  localStorage.setItem('dp_offline_queue', JSON.stringify(q));
+}
+function queueOffline(action) {
+  const q = getOfflineQueue();
+  q.push(action);
+  saveOfflineQueue(q);
+  showSync('offline', 'sin conexion — guardado local');
+}
+async function syncOfflineQueue() {
+  const q = getOfflineQueue();
+  if (!q.length) return;
+  showSync('saving', 'sincronizando...');
+  const failed = [];
+  for (const action of q) {
+    try {
+      if (action.type === 'upsert_checklist') {
+        await upsertChecklist(action.cliente_id, action.paso, action.completado, true);
+      } else if (action.type === 'create_client') {
+        await createClientInDB(action.nombre, action.nicho, true);
+      }
+    } catch {
+      failed.push(action);
+    }
+  }
+  saveOfflineQueue(failed);
+  if (!failed.length) showSync('saved', 'guardado ✓');
+}
+
+/* ═══════════════════════════════════════
+   LOCAL STATE BACKUP
+   ═══════════════════════════════════════ */
+function saveLocalState() {
+  localStorage.setItem('dp_state', JSON.stringify({ cliente, nicho, clienteId, done }));
+}
+function loadLocalState() {
+  try { return JSON.parse(localStorage.getItem('dp_state')); }
+  catch { return null; }
+}
+
+/* ═══════════════════════════════════════
+   SUPABASE: CLIENTS
+   ═══════════════════════════════════════ */
+async function createClientInDB(nombre, nichoVal, fromQueue) {
+  if (!isOnline && !fromQueue) {
+    queueOffline({ type: 'create_client', nombre, nicho: nichoVal });
+    return null;
+  }
+  // Check if client already exists
+  const { data: existing } = await sb.from('clientes').select('id,nicho').eq('nombre', nombre).eq('activo', true).limit(1);
+  if (existing && existing.length) {
+    clienteId = existing[0].id;
+    return clienteId;
+  }
+  const { data, error } = await sb.from('clientes').insert({ nombre, nicho: nichoVal }).select('id').single();
+  if (error) throw error;
+  clienteId = data.id;
+  return clienteId;
+}
+
+async function loadExistingClients() {
+  try {
+    const { data } = await sb.from('clientes').select('id, nombre, nicho').eq('activo', true).order('fecha_creacion', { ascending: false }).limit(20);
+    const list = document.getElementById('client-list');
+    const title = document.getElementById('clients-title');
+    if (!data || !data.length) { title.style.display = 'none'; list.innerHTML = ''; return; }
+
+    // Load progress counts for each client
+    const ids = data.map(c => c.id);
+    const { data: checks } = await sb.from('checklists').select('cliente_id, paso').eq('completado', true).in('cliente_id', ids);
+    const countMap = {};
+    if (checks) checks.forEach(ch => { countMap[ch.cliente_id] = (countMap[ch.cliente_id] || 0) + 1; });
+
+    title.style.display = 'block';
+    list.innerHTML = data.map(c =>
+      `<button class="client-chip" onclick="loadClient('${c.id}','${c.nombre.replace(/'/g,"\\'")}','${(c.nicho||'').replace(/'/g,"\\'")}')">${c.nombre}<span class="chip-progress">${countMap[c.id]||0}/9</span></button>`
+    ).join('');
+  } catch {
+    // Silently fail — not critical
+  }
+}
+
+async function loadClient(id, nombre, nichoVal) {
+  clienteId = id;
+  cliente = nombre;
+  nicho = nichoVal;
+  inpC.value = nombre;
+  inpN.value = nichoVal;
+
+  // Load checklist progress
+  done.fill(false);
+  try {
+    const { data } = await sb.from('checklists').select('paso, completado').eq('cliente_id', id);
+    if (data) data.forEach(row => { if (row.completado) done[row.paso - 1] = true; });
+  } catch {
+    // Use local state if offline
+    const local = loadLocalState();
+    if (local && local.clienteId === id) done = local.done;
+  }
+
+  prompts = getPrompts(cliente, nicho);
+  document.getElementById('client-header-name').textContent = cliente + ' — ' + nicho;
+  document.getElementById('flow-content').style.display = 'block';
+  document.getElementById('setup-section').style.display = 'none';
+  for (let i = 0; i < 9; i++) {
+    document.getElementById('p' + i).textContent = prompts[i];
+    renderStepState(i);
+  }
+  updateProgress();
+  // Open first incomplete step
+  const firstOpen = done.indexOf(false);
+  if (firstOpen >= 0) toggleStep(firstOpen);
+  saveLocalState();
+}
+
+/* ═══════════════════════════════════════
+   SUPABASE: CHECKLISTS
+   ═══════════════════════════════════════ */
+async function upsertChecklist(cid, paso, completado, fromQueue) {
+  if (!isOnline && !fromQueue) {
+    queueOffline({ type: 'upsert_checklist', cliente_id: cid, paso, completado });
+    return;
+  }
+  showSync('saving', 'guardando...');
+  const { error } = await sb.from('checklists').upsert({
+    cliente_id: cid,
+    paso: paso,
+    completado: completado,
+    fecha_completado: completado ? new Date().toISOString() : null
+  }, { onConflict: 'cliente_id,paso' });
+  if (error) throw error;
+  showSync('saved', 'guardado ✓');
+}
+
+/* ═══════════════════════════════════════
+   UI LOGIC
+   ═══════════════════════════════════════ */
+function checkStart() {
   startBtn.disabled = !(inpC.value.trim() && inpN.value.trim());
 }
 
 function getPrompts(c, n){
   return [
-    // 0 Chrome
     `Lee todos los comentarios visibles en esta página.\n\nEstoy construyendo Las 7 Maletas para el cliente: ${c}\nNicho: ${n}\n\nExtrae y organiza:\n\n🎒 MALETA 1 — PÚBLICO\n— Perfil demográfico inferido\n— Momento de vida en que están\n\n🎒 MALETA 2 — PROBLEMA\n— Top 5 dolores expresados textualmente\n— Frases EXACTAS que usan (sin parafrasear)\n— Intensidad emocional: rabia, frustración, miedo, vergüenza\n\n🎒 MALETA 6 — OBJECIONES\n— Razones por las que NO compran\n— Excusas recurrentes\n\n🎒 LENGUAJE DEL MERCADO\n— Palabras y jerga específica\n— Metáforas o comparaciones que repiten\n\nPrioriza volumen de menciones. Frases textuales ante todo.`,
-    // 1 Research
     `Activa Research antes de enviar.\n\nNecesito diagnóstico completo del mercado de ${n} para el cliente ${c}.\n\nBusca en foros, artículos, redes, reviews y fuentes públicas.\n\n🎒 MALETA 1 — PÚBLICO\n— Segmentos psicográficos principales\n— Nivel de consciencia del problema\n\n🎒 MALETA 2 — PROBLEMA\n— Los 3 grandes dolores con intensidad emocional\n— ¿Cuánto llevan sin solución?\n\n🎒 MALETA 3 — SOLUCIÓN\n— Qué soluciones ya conocen\n— Qué intentaron antes que no funcionó\n\n🎒 MALETA 4 — DIFERENCIALES\n— Qué valora más este mercado en una solución ideal\n— Qué promesas están quemadas\n\n🎒 MALETA 5 — TESTIMONIOS\n— Resultados que necesitan ver antes de comprar\n— Formato de prueba social más convincente\n\n🎒 MALETA 6 — OBJECIONES\n— Top 5 objeciones reales clasificadas: precio / tiempo / confianza / creencia\n\n🎒 MALETA 7 — GARANTÍA\n— Nivel de riesgo percibido\n— Qué tipo de garantía los tranquilizaría\n\nAl final: 10 frases textuales del mercado describiendo su dolor.`,
-    // 2 Code
     `En la carpeta /clientes/${c.replace(/\s+/g,'-')}/investigacion/ tengo archivos del cliente.\n\n1. Lee TODOS los archivos de esa carpeta\n2. Extrae y consolida en Las 7 Maletas:\n   — Maleta 1: Público (perfil psicográfico)\n   — Maleta 2: Problema (dolores con frases textuales)\n   — Maleta 3: Solución (qué han intentado)\n   — Maleta 4: Diferenciales (qué valoran más)\n   — Maleta 5: Testimonios (resultados esperados)\n   — Maleta 6: Objeciones (razones de no compra)\n   — Maleta 7: Garantía (riesgo percibido)\n\n3. Genera /output/7_maletas_${c.replace(/\s+/g,'-')}.md con:\n   — Las 7 maletas documentadas\n   — Top 20 frases textuales del mercado\n   — Nivel de consciencia predominante\n   — 3 ángulos de mensaje recomendados para los ads\n\nNo inventes datos. Si falta info escribe: "Sin datos suficientes".`,
-    // 3 Triángulo
     `Aquí están Las 7 Maletas completadas del cliente ${c} (nicho: ${n}):\n[PEGA AQUÍ EL OUTPUT DE LA FASE 0]\n\nCon esta información define:\n\n🔺 TRIÁNGULO DORADO\n— OFERTA: propuesta de valor específica para este mercado\n— AUDIENCIA: segmento psicográfico principal con nivel de consciencia\n— MENSAJE: ángulo central y frase gancho basada en frases textuales del mercado\n\n🧠 NIVEL DE CONSCIENCIA PREDOMINANTE\n— Clasifica: Inconsciente / Del problema / De la solución / Del producto / Listo para comprar\n— Justifica con evidencia de las maletas\n— Recomienda el tipo de contenido para este nivel\n\n💡 3 ÁNGULOS DE MENSAJE\n— Ángulo 1: basado en el dolor más frecuente\n— Ángulo 2: basado en el diferencial más valorado\n— Ángulo 3: basado en la objeción más común\n\nSé específico. Usa el lenguaje textual del mercado, no lenguaje genérico de marketing.`,
-    // 4 Ciclo FB
     `Con el Triángulo Dorado de ${c} definido, arma el plan de campaña FB Ads:\n[PEGA EL TRIÁNGULO DORADO AQUÍ]\n\nCiclo de 4 fases con distribución 60/20/10/10:\n\n📢 F1 PRESENTACIÓN (60% del presupuesto)\n— Público: frío (Inconsciente → Solución)\n— Tipos de arte recomendados para este nicho específico\n— Mensaje principal basado en Maleta 2 (Problema)\n— Copy de ejemplo\n\n🔍 F2 EVALUACIÓN (20%)\n— Público: tibio (vieron video / visitaron web)\n— Tipos de arte: testimonio, prensa, beneficios\n— Mensaje basado en Maletas 4+5 (Diferenciales+Testimonios)\n\n💰 F3 CONVERSIÓN (10%)\n— Público: caliente (carrito / clic / formulario abierto)\n— Manejo de objeciones de Maleta 6\n— Garantía de Maleta 7\n\n🚀 F4 ASCENSIÓN (10%)\n— Público: compradores actuales\n— Oportunidad de upsell/cross-sell del cliente\n\nCada fase excluye del público a las fases siguientes. Dame el plan concreto, no genérico.`,
-    // 5 Reporte docx
     `Genera un documento Word profesional con el reporte completo de investigación de mercado para ${c}.\n\nUsa estructura SCQA:\n— Situación: contexto del mercado de ${n}\n— Complicación: los problemas no resueltos encontrados\n— Pregunta: qué necesita este mercado realmente\n— Respuesta: Las 7 Maletas documentadas\n\nIncluye:\n— Las 7 Maletas con evidencia textual\n— Top 15 frases textuales del mercado\n— Nivel de consciencia predominante\n— 3 ángulos de mensaje recomendados\n— Conclusión estratégica\n\nIdeas importantes EN CAPS. Ideas centrales en negrita.\nNo repetir información entre secciones.\nTono: estratégico y ejecutivo.`,
-    // 6 Presentación pptx
     `Crea una presentación profesional para presentar el diagnóstico de mercado de ${c} al cliente.\n\nEstructura de slides:\n1. Portada — nombre del cliente + título del diagnóstico\n2. El mercado de ${n} hoy — contexto y situación actual\n3. Lo que el mercado realmente está gritando — top 3 dolores con frases textuales\n4. Las oportunidades invisibles — diferenciales disponibles\n5. Nuestra propuesta — Triángulo Dorado\n6. El plan de campaña — ciclo de 4 fases con presupuesto\n7. Próximos pasos — CTA claro\n\nPara cada slide:\n— Incluye UNA historia o dato impactante real del mercado\n— Extrae frases clave para exposición oral\n— Diseño limpio, datos que hablen solos\n\nIncluye notas del presentador con el contexto ampliado de cada slide.`,
-    // 7 Landing
     `Diseña una landing page de alta conversión para ${c} en el nicho de ${n}.\n\nUsa exactamente este contenido de Las 7 Maletas:\n[PEGA LAS MALETAS 2, 4, 6 y 7 AQUÍ]\n\nEstructura obligatoria:\n1. Hero — hook con el dolor más frecuente de Maleta 2\n2. Problema — amplificación del dolor con frases textuales del mercado\n3. Solución — la transformación posible\n4. Diferenciales — por qué nosotros (Maleta 4)\n5. Prueba social — testimonios y resultados (Maleta 5)\n6. Objeciones — sección de preguntas frecuentes que maneja Maleta 6\n7. Garantía — Maleta 7 como reductor de riesgo\n8. CTA final — acción clara y específica\n\nStack: Next.js 15 + Tailwind CSS\nOptimizado para Meta Pixel + conversiones\nConectado a formulario que dispara evento Lead hacia CAPI`,
-    // 8 Scripts
     `Crea los scripts y copy de campaña completos para ${c} (nicho: ${n}).\n\nUsa Las 7 Maletas documentadas:\n[PEGA LAS MALETAS AQUÍ]\n\n📹 SCRIPT DE VIDEO — FUNNEL 6 PASOS\nPaso 1 — Hook al sector: usa el dolor más frecuente de Maleta 2\nPaso 2 — Mayéutica: pregunta socrática que activa consciencia (SIEMPRE paso 2)\nPaso 3 — Storytelling: caso real con lenguaje textual del mercado\nPaso 4 — Posibilidad transformadora: solución diferenciada (Maletas 3+4)\nPaso 5 — Moraleja con urgencia: costo de no resolver el problema\nPaso 6 — CTA: acción clara con la garantía de Maleta 7\n\n📱 COPY PARA ADS (una versión por fase del ciclo)\n— F1 Presentación: para público frío, ángulo de problema/dolor\n— F2 Evaluación: para público tibio, ángulo de prueba social\n— F3 Conversión: para público caliente, ángulo de oferta + garantía\n\n💬 MENSAJE WHATSAPP (cierre)\nDirecto, 3 líneas máximo, con emojis, basado en la objeción más común de Maleta 6`
   ];
 }
 
 let prompts = [];
 
-function updatePrompts(){
+function updatePrompts() {
   const c = inpC.value.trim() || 'CLIENTE';
   const n = inpN.value.trim() || 'NICHO';
   prompts = getPrompts(c, n);
-  for(let i=0;i<9;i++){
-    const el = document.getElementById('p'+i);
-    if(el) el.textContent = prompts[i];
+  for (let i = 0; i < 9; i++) {
+    const el = document.getElementById('p' + i);
+    if (el) el.textContent = prompts[i];
   }
 }
 
-function startFlow(){
+async function startFlow() {
   cliente = inpC.value.trim();
   nicho = inpN.value.trim();
+
+  // Create or find client in Supabase
+  try {
+    showSync('saving', 'guardando cliente...');
+    await createClientInDB(cliente, nicho, false);
+    showSync('saved', 'guardado ✓');
+  } catch {
+    // Continue anyway — will work offline
+    showSync('offline', 'modo offline');
+  }
+
   prompts = getPrompts(cliente, nicho);
   document.getElementById('client-header-name').textContent = cliente + ' — ' + nicho;
   document.getElementById('flow-content').style.display = 'block';
   document.getElementById('setup-section').style.display = 'none';
-  for(let i=0;i<9;i++){
-    document.getElementById('p'+i).textContent = prompts[i];
+  for (let i = 0; i < 9; i++) {
+    document.getElementById('p' + i).textContent = prompts[i];
   }
   toggleStep(0);
   updateProgress();
+  saveLocalState();
 }
 
-function toggleStep(i){
-  open[i] = !open[i];
-  document.getElementById('sb'+i).classList.toggle('open', open[i]);
-  document.getElementById('exp'+i).classList.toggle('open', open[i]);
-  if(open[i]) document.getElementById('sc'+i).classList.add('active-step');
-  else document.getElementById('sc'+i).classList.remove('active-step');
-}
-
-function markDone(i){
-  done[i] = !done[i];
-  const chk = document.getElementById('chk'+i);
-  const btn = document.getElementById('md'+i);
-  const card = document.getElementById('sc'+i);
-  if(done[i]){
+function renderStepState(i) {
+  const chk = document.getElementById('chk' + i);
+  const btn = document.getElementById('md' + i);
+  const card = document.getElementById('sc' + i);
+  if (done[i]) {
     chk.textContent = '✓';
     chk.classList.add('done');
     btn.classList.add('is-done');
     btn.innerHTML = '✓ &nbsp;Completado';
     card.classList.add('completed');
     card.classList.remove('active-step');
-    if(open[i]) toggleStep(i);
-    // auto-open next
-    const next = i+1;
-    if(next < 9 && !open[next]) toggleStep(next);
   } else {
     chk.textContent = '';
     chk.classList.remove('done');
@@ -511,31 +690,62 @@ function markDone(i){
     btn.innerHTML = '◯ &nbsp;Marcar como completado';
     card.classList.remove('completed');
   }
-  updateProgress();
 }
 
-function copyP(i){
-  navigator.clipboard.writeText(prompts[i]).then(()=>{
-    const btn = document.getElementById('cpb'+i);
+function toggleStep(i) {
+  open[i] = !open[i];
+  document.getElementById('sb' + i).classList.toggle('open', open[i]);
+  document.getElementById('exp' + i).classList.toggle('open', open[i]);
+  if (open[i]) document.getElementById('sc' + i).classList.add('active-step');
+  else document.getElementById('sc' + i).classList.remove('active-step');
+}
+
+async function markDone(i) {
+  done[i] = !done[i];
+  renderStepState(i);
+
+  if (done[i]) {
+    if (open[i]) toggleStep(i);
+    const next = i + 1;
+    if (next < 9 && !open[next]) toggleStep(next);
+  }
+  updateProgress();
+  saveLocalState();
+
+  // Sync to Supabase
+  if (clienteId) {
+    try {
+      await upsertChecklist(clienteId, i + 1, done[i], false);
+    } catch {
+      queueOffline({ type: 'upsert_checklist', cliente_id: clienteId, paso: i + 1, completado: done[i] });
+    }
+  }
+}
+
+function copyP(i) {
+  navigator.clipboard.writeText(prompts[i]).then(() => {
+    const btn = document.getElementById('cpb' + i);
     btn.textContent = '✓ copiado';
     btn.classList.add('copied');
-    setTimeout(()=>{btn.textContent='copiar';btn.classList.remove('copied');}, 2000);
+    setTimeout(() => { btn.textContent = 'copiar'; btn.classList.remove('copied'); }, 2000);
   });
 }
 
-function updateProgress(){
+function updateProgress() {
   const total = done.filter(Boolean).length;
   document.getElementById('prog-count').textContent = total + '/9';
-  for(let i=0;i<9;i++){
-    const dot = document.getElementById('pd'+i);
-    if(done[i]) dot.classList.add('done');
+  for (let i = 0; i < 9; i++) {
+    const dot = document.getElementById('pd' + i);
+    if (done[i]) dot.classList.add('done');
     else dot.classList.remove('done');
   }
 }
 
-function resetFlow(){
+function resetFlow() {
   done.fill(false);
   open.fill(false);
+  clienteId = null;
+  for (let i = 0; i < 9; i++) renderStepState(i);
   document.getElementById('flow-content').style.display = 'none';
   document.getElementById('setup-section').style.display = 'block';
   inpC.value = '';
@@ -543,7 +753,26 @@ function resetFlow(){
   startBtn.disabled = true;
   document.getElementById('client-header-name').textContent = 'Ingresa un cliente para comenzar';
   updateProgress();
+  localStorage.removeItem('dp_state');
+  loadExistingClients();
 }
+
+/* ═══════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════ */
+(async function init() {
+  // Try to sync any offline queue
+  if (isOnline) syncOfflineQueue();
+
+  // Load existing clients
+  await loadExistingClients();
+
+  // Restore last session if page was refreshed
+  const saved = loadLocalState();
+  if (saved && saved.clienteId && saved.cliente) {
+    await loadClient(saved.clienteId, saved.cliente, saved.nicho || '');
+  }
+})();
 </script>
 </body>
 </html>
