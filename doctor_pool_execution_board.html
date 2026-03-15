@@ -1,0 +1,549 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e0f;
+  --bg2:#161618;
+  --bg3:#1e1e21;
+  --border:#2a2a2e;
+  --border2:#383840;
+  --text:#f0ede8;
+  --text2:#8a8790;
+  --text3:#55535a;
+  --amber:#e8a045;
+  --amber2:#f0b85a;
+  --amber-dim:#2a1f0a;
+  --green:#4caf7d;
+  --green-dim:#0d2018;
+  --blue:#5b9bd5;
+  --blue-dim:#0d1e30;
+  --red:#d95f5f;
+  --red-dim:#2a0f0f;
+  --purple:#8b6fd4;
+  --purple-dim:#1a1230;
+  --radius:10px;
+  --radius-sm:6px;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;padding:0}
+.mono{font-family:'Space Mono',monospace}
+
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:28px;height:28px;background:var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:#000;flex-shrink:0}
+.logo-text{font-family:'Space Mono',monospace;font-size:13px;color:var(--text);letter-spacing:0.02em}
+.logo-sub{font-size:11px;color:var(--text3);font-family:'Space Mono',monospace}
+.progress-bar{display:flex;align-items:center;gap:6px}
+.prog-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:background 0.3s}
+.prog-dot.done{background:var(--green)}
+.prog-dot.active{background:var(--amber)}
+.prog-label{font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;margin-left:4px}
+
+/* MAIN */
+.main{padding:20px 24px;max-width:860px;margin:0 auto}
+
+/* CLIENT SETUP */
+.setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.setup-title{font-size:11px;font-family:'Space Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px}
+.setup-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-label{font-size:11px;color:var(--text3);margin-bottom:6px;font-family:'Space Mono',monospace}
+.field-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s}
+.field-input:focus{border-color:var(--amber)}
+.field-input::placeholder{color:var(--text3)}
+.start-btn{margin-top:14px;background:var(--amber);color:#000;border:none;border-radius:var(--radius-sm);padding:10px 20px;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;transition:background 0.2s;letter-spacing:0.05em}
+.start-btn:hover{background:var(--amber2)}
+.start-btn:disabled{background:var(--border2);color:var(--text3);cursor:not-allowed}
+
+/* PHASES */
+.phase-block{margin-bottom:24px}
+.phase-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.phase-pill{font-size:10px;font-family:'Space Mono',monospace;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:0.08em;text-transform:uppercase}
+.pill-0{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber)}
+.pill-1{background:var(--purple-dim);color:var(--purple);border:1px solid var(--purple)}
+.pill-2{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.phase-title{font-size:15px;font-weight:600;color:var(--text)}
+.phase-rule{font-size:11px;color:var(--text3);margin-left:auto;font-family:'Space Mono',monospace}
+
+/* STEP CARDS */
+.step-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;transition:border-color 0.2s}
+.step-card.completed{border-color:var(--green);opacity:0.7}
+.step-card.active-step{border-color:var(--amber)}
+.step-top{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none}
+.step-top:hover{background:var(--bg3)}
+.step-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;cursor:pointer}
+.step-check.done{background:var(--green);border-color:var(--green);color:#000;font-size:11px}
+.step-num{font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);flex-shrink:0;width:20px}
+.step-info{flex:1}
+.step-name{font-size:13px;font-weight:500;color:var(--text)}
+.step-tool{font-size:11px;font-family:'Space Mono',monospace;margin-top:2px}
+.tool-chrome{color:#f0b85a}
+.tool-research{color:var(--blue)}
+.tool-code{color:var(--green)}
+.tool-strategy{color:var(--purple)}
+.tool-prod{color:#d95f5f}
+.step-expand{font-size:10px;color:var(--text3);transition:transform 0.2s;margin-left:auto}
+.step-expand.open{transform:rotate(180deg)}
+
+/* STEP BODY */
+.step-body{padding:0 16px 16px;display:none}
+.step-body.open{display:block}
+.step-desc{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px;padding:10px 12px;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid var(--border2)}
+
+/* PROMPT BOX */
+.prompt-label{font-size:10px;font-family:'Space Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
+.prompt-wrap{position:relative}
+.prompt-text{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.8;color:var(--text2);white-space:pre-wrap;word-break:break-word;max-height:260px;overflow-y:auto}
+.prompt-text .highlight{color:var(--amber);font-weight:700}
+.copy-btn{position:absolute;top:8px;right:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 12px;font-family:'Space Mono',monospace;font-size:10px;color:var(--text2);cursor:pointer;transition:all 0.2s}
+.copy-btn:hover{background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
+.copy-btn.copied{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.mark-done{margin-top:12px;background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:7px 14px;font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px}
+.mark-done:hover{border-color:var(--green);color:var(--green)}
+.mark-done.is-done{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+
+/* SOURCES */
+.sources-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.source-tag{font-size:11px;padding:4px 10px;border-radius:99px;border:1px solid var(--border);color:var(--text3);background:var(--bg3);font-family:'Space Mono',monospace}
+
+/* LOCKED */
+.locked-overlay{padding:20px;text-align:center;color:var(--text3);font-family:'Space Mono',monospace;font-size:12px}
+
+/* RESET */
+.reset-area{text-align:center;padding:20px}
+.reset-btn{background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 18px;font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);cursor:pointer}
+.reset-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+.fade-in{animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">DP</div>
+    <div>
+      <div class="logo-text">Doctor Pool — Tablero de Operaciones</div>
+      <div class="logo-sub" id="client-header-name">Ingresa un cliente para comenzar</div>
+    </div>
+  </div>
+  <div class="progress-bar" id="progress-bar">
+    <div class="prog-dot" id="pd0"></div>
+    <div class="prog-dot" id="pd1"></div>
+    <div class="prog-dot" id="pd2"></div>
+    <div class="prog-dot" id="pd3"></div>
+    <div class="prog-dot" id="pd4"></div>
+    <div class="prog-dot" id="pd5"></div>
+    <div class="prog-dot" id="pd6"></div>
+    <div class="prog-dot" id="pd7"></div>
+    <div class="prog-dot" id="pd8"></div>
+    <span class="prog-label" id="prog-count">0/9</span>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- SETUP -->
+<div class="setup-card" id="setup-section">
+  <div class="setup-title">// nuevo cliente</div>
+  <div class="setup-row">
+    <div>
+      <div class="field-label">Nombre del cliente</div>
+      <input class="field-input" id="inp-cliente" placeholder="Ej: Estudio Jurídico Montoya" oninput="updatePrompts()">
+    </div>
+    <div>
+      <div class="field-label">Nicho / sector</div>
+      <input class="field-input" id="inp-nicho" placeholder="Ej: abogados de familia en Medellín" oninput="updatePrompts()">
+    </div>
+  </div>
+  <button class="start-btn" id="start-btn" onclick="startFlow()" disabled>INICIAR FLUJO →</button>
+</div>
+
+<!-- CONTENT -->
+<div id="flow-content" style="display:none" class="fade-in">
+
+<!-- FASE 0 -->
+<div class="phase-block">
+  <div class="phase-header">
+    <span class="phase-pill pill-0">Fase 0</span>
+    <span class="phase-title">Investigación de mercado</span>
+    <span class="phase-rule">Obligatoria — sin esto no hay Fase 1</span>
+  </div>
+
+  <!-- STEP 1: Chrome -->
+  <div class="step-card" id="sc0">
+    <div class="step-top" onclick="toggleStep(0)">
+      <div class="step-check" id="chk0" onclick="event.stopPropagation();markDone(0)"></div>
+      <span class="step-num">01</span>
+      <div class="step-info">
+        <div class="step-name">Extracción de comentarios en vivo</div>
+        <div class="step-tool tool-chrome">Claude in Chrome — YouTube · Grupos FB · Reseñas</div>
+      </div>
+      <span class="step-expand" id="exp0">▼</span>
+    </div>
+    <div class="step-body" id="sb0">
+      <div class="step-desc">Navega a cada fuente, haz scroll hasta cargar el máximo de comentarios, luego activa Claude in Chrome y usa el prompt. Repite en mínimo 3 fuentes distintas.</div>
+      <div class="sources-row">
+        <span class="source-tag">YouTube competidores</span>
+        <span class="source-tag">Grupos Facebook del nicho</span>
+        <span class="source-tag">Reseñas MercadoLibre</span>
+        <span class="source-tag">Trustpilot competidores</span>
+      </div>
+      <div class="prompt-label">Prompt para Chrome</div>
+      <div class="prompt-wrap">
+        <div class="prompt-text" id="p0"></div>
+        <button class="copy-btn" id="cpb0" onclick="copyP(0)">copiar</button>
+      </div>
+      <button class="mark-done" id="md0" onclick="markDone(0)">◯ &nbsp;Marcar como completado</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Research -->
+  <div class="step-card" id="sc1">
+    <div class="step-top" onclick="toggleStep(1)">
+      <div class="step-check" id="chk1" onclick="event.stopPropagation();markDone(1)"></div>
+      <span class="step-num">02</span>
+      <div class="step-info">
+        <div class="step-name">Diagnóstico macro del mercado</div>
+        <div class="step-tool tool-research">Claude Chat + Research activado — múltiples fuentes simultáneas</div>
+      </div>
+      <span class="step-expand" id="exp1">▼</span>
+    </div>
+    <div class="step-body" id="sb1">
+      <div class="step-desc">Activa el modo Research en Claude Chat antes de enviar. Claude buscará autónomamente en foros, artículos, redes y cualquier fuente pública relevante del nicho.</div>
+      <div class="prompt-label">Prompt para Claude Chat Research</div>
+      <div class="prompt-wrap">
+        <div class="prompt-text" id="p1"></div>
+        <button class="copy-btn" id="cpb1" onclick="copyP(1)">copiar</button>
+      </div>
+      <button class="mark-done" id="md1" onclick="markDone(1)">◯ &nbsp;Marcar como completado</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Code -->
+  <div class="step-card" id="sc2">
+    <div class="step-top" onclick="toggleStep(2)">
+      <div class="step-check" id="chk2" onclick="event.stopPropagation();markDone(2)"></div>
+      <span class="step-num">03</span>
+      <div class="step-info">
+        <div class="step-name">Procesamiento masivo de archivos</div>
+        <div class="step-tool tool-code">Claude Code — transcripciones · CSVs · PDFs del cliente</div>
+      </div>
+      <span class="step-expand" id="exp2">▼</span>
+    </div>
+    <div class="step-body" id="sb2">
+      <div class="step-desc">Úsalo solo si el cliente tiene archivos previos: transcripciones de calls, exports de CRM, encuestas, etc. Abre la carpeta del cliente en VS Code, corre /init, luego usa el prompt.</div>
+      <div class="prompt-label">Prompt para Claude Code</div>
+      <div class="prompt-wrap">
+        <div class="prompt-text" id="p2"></div>
+        <button class="copy-btn" id="cpb2" onclick="copyP(2)">copiar</button>
+      </div>
+      <button class="mark-done" id="md2" onclick="markDone(2)">◯ &nbsp;Marcar como completado</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- FASE 1 -->
+<div class="phase-block">
+  <div class="phase-header">
+    <span class="phase-pill pill-1">Fase 1</span>
+    <span class="phase-title">Estrategia</span>
+    <span class="phase-rule">Del insight a la decisión táctica</span>
+  </div>
+
+  <!-- STEP 4: Triángulo -->
+  <div class="step-card" id="sc3">
+    <div class="step-top" onclick="toggleStep(3)">
+      <div class="step-check" id="chk3" onclick="event.stopPropagation();markDone(3)"></div>
+      <span class="step-num">04</span>
+      <div class="step-info">
+        <div class="step-name">Triángulo Dorado + Nivel de consciencia</div>
+        <div class="step-tool tool-strategy">Claude Chat — con las 7 Maletas ya documentadas</div>
+      </div>
+      <span class="step-expand" id="exp3">▼</span>
+    </div>
+    <div class="step-body" id="sb3">
+      <div class="step-desc">Pega el output de la Fase 0 completo. Claude definirá la Oferta, Audiencia y Mensaje del Triángulo Dorado, identificará el nivel de consciencia y recomendará los ángulos de campaña.</div>
+      <div class="prompt-label">Prompt estratégico</div>
+      <div class="prompt-wrap">
+        <div class="prompt-text" id="p3"></div>
+        <button class="copy-btn" id="cpb3" onclick="copyP(3)">copiar</button>
+      </div>
+      <button class="mark-done" id="md3" onclick="markDone(3)">◯ &nbsp;Marcar como completado</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: Ciclo FB -->
+  <div class="step-card" id="sc4">
+    <div class="step-top" onclick="toggleStep(4)">
+      <div class="step-check" id="chk4" onclick="event.stopPropagation();markDone(4)"></div>
+      <span class="step-num">05</span>
+      <div class="step-info">
+        <div class="step-name">Plan de campaña — ciclo de 4 fases FB Ads</div>
+        <div class="step-tool tool-strategy">Claude Chat — estructura de presupuesto y artes por fase</div>
+      </div>
+      <span class="step-expand" id="exp4">▼</span>
+    </div>
+    <div class="step-body" id="sb4">
+      <div class="step-desc">Con el Triángulo Dorado definido, Claude asigna qué tipo de arte va en cada fase del ciclo y cómo distribuir el presupuesto según los dolores y objeciones encontrados.</div>
+      <div class="prompt-label">Prompt para plan de campaña</div>
+      <div class="prompt-wrap">
+        <div class="prompt-text" id="p4"></div>
+        <button class="copy-btn" id="cpb4" onclick="copyP(4)">copiar</button>
+      </div>
+      <button class="mark-done" id="md4" onclick="markDone(4)">◯ &nbsp;Marcar como completado</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- FASE 2 -->
+<div class="phase-block">
+  <div class="phase-header">
+    <span class="phase-pill pill-2">Fase 2</span>
+    <span class="phase-title">Producción de entregables</span>
+    <span class="phase-rule">Cada uno activa su skill automáticamente</span>
+  </div>
+
+  <!-- STEP 6: Reporte -->
+  <div class="step-card" id="sc5">
+    <div class="step-top" onclick="toggleStep(5)">
+      <div class="step-check" id="chk5" onclick="event.stopPropagation();markDone(5)"></div>
+      <span class="step-num">06</span>
+      <div class="step-info">
+        <div class="step-name">Reporte de investigación — Las 7 Maletas</div>
+        <div class="step-tool tool-prod">Skill: docx — documento Word profesional</div>
+      </div>
+      <span class="step-expand" id="exp5">▼</span>
+    </div>
+    <div class="step-body" id="sb5">
+      <div class="step-desc">Claude genera un documento Word con las 7 Maletas documentadas, frases textuales del mercado y ángulos de mensaje. Entregable para el cliente o para tu archivo interno.</div>
+      <div class="prompt-label">Prompt para reporte Word</div>
+      <div class="prompt-wrap">
+        <div class="prompt-text" id="p5"></div>
+        <button class="copy-btn" id="cpb5" onclick="copyP(5)">copiar</button>
+      </div>
+      <button class="mark-done" id="md5" onclick="markDone(5)">◯ &nbsp;Marcar como completado</button>
+    </div>
+  </div>
+
+  <!-- STEP 7: Presentación -->
+  <div class="step-card" id="sc6">
+    <div class="step-top" onclick="toggleStep(6)">
+      <div class="step-check" id="chk6" onclick="event.stopPropagation();markDone(6)"></div>
+      <span class="step-num">07</span>
+      <div class="step-info">
+        <div class="step-name">Presentación al cliente</div>
+        <div class="step-tool tool-prod">Skill: pptx — deck con diagnóstico y propuesta</div>
+      </div>
+      <span class="step-expand" id="exp6">▼</span>
+    </div>
+    <div class="step-body" id="sb6">
+      <div class="step-desc">Deck de presentación con el diagnóstico del mercado, la estrategia propuesta y el plan de campaña. Incluye frases clave para exposición oral y estructura para facilitar memorización.</div>
+      <div class="prompt-label">Prompt para presentación PPT</div>
+      <div class="prompt-wrap">
+        <div class="prompt-text" id="p6"></div>
+        <button class="copy-btn" id="cpb6" onclick="copyP(6)">copiar</button>
+      </div>
+      <button class="mark-done" id="md6" onclick="markDone(6)">◯ &nbsp;Marcar como completado</button>
+    </div>
+  </div>
+
+  <!-- STEP 8: Landing -->
+  <div class="step-card" id="sc7">
+    <div class="step-top" onclick="toggleStep(7)">
+      <div class="step-check" id="chk7" onclick="event.stopPropagation();markDone(7)"></div>
+      <span class="step-num">08</span>
+      <div class="step-info">
+        <div class="step-name">Landing page de alta conversión</div>
+        <div class="step-tool tool-prod">Skill: frontend-design — Next.js · Vercel ready</div>
+      </div>
+      <span class="step-expand" id="exp7">▼</span>
+    </div>
+    <div class="step-body" id="sb7">
+      <div class="step-desc">Landing construida con los dolores reales de Maleta 2, los diferenciales de Maleta 4, las objeciones manejadas de Maleta 6 y la garantía de Maleta 7. Directa al código Next.js.</div>
+      <div class="prompt-label">Prompt para landing page</div>
+      <div class="prompt-wrap">
+        <div class="prompt-text" id="p7"></div>
+        <button class="copy-btn" id="cpb7" onclick="copyP(7)">copiar</button>
+      </div>
+      <button class="mark-done" id="md7" onclick="markDone(7)">◯ &nbsp;Marcar como completado</button>
+    </div>
+  </div>
+
+  <!-- STEP 9: Scripts -->
+  <div class="step-card" id="sc8">
+    <div class="step-top" onclick="toggleStep(8)">
+      <div class="step-check" id="chk8" onclick="event.stopPropagation();markDone(8)"></div>
+      <span class="step-num">09</span>
+      <div class="step-info">
+        <div class="step-name">Scripts y copy de campaña</div>
+        <div class="step-tool tool-prod">Funnel 6 pasos — ads · videos · WhatsApp</div>
+      </div>
+      <span class="step-expand" id="exp8">▼</span>
+    </div>
+    <div class="step-body" id="sb8">
+      <div class="step-desc">Scripts para videos de campaña siguiendo el funnel de 6 pasos: Hook → Mayéutica → Storytelling → Posibilidad → Moraleja → CTA. Copy para ads de cada fase del ciclo.</div>
+      <div class="prompt-label">Prompt para scripts y copy</div>
+      <div class="prompt-wrap">
+        <div class="prompt-text" id="p8"></div>
+        <button class="copy-btn" id="cpb8" onclick="copyP(8)">copiar</button>
+      </div>
+      <button class="mark-done" id="md8" onclick="markDone(8)">◯ &nbsp;Marcar como completado</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="reset-area">
+  <button class="reset-btn" onclick="resetFlow()">↺ &nbsp;Nuevo cliente</button>
+</div>
+
+</div><!-- end flow-content -->
+</div><!-- end main -->
+
+<script>
+let cliente = '';
+let nicho = '';
+let done = new Array(9).fill(false);
+let open = new Array(9).fill(false);
+
+const inpC = document.getElementById('inp-cliente');
+const inpN = document.getElementById('inp-nicho');
+const startBtn = document.getElementById('start-btn');
+
+inpC.addEventListener('input', checkStart);
+inpN.addEventListener('input', checkStart);
+
+function checkStart(){
+  startBtn.disabled = !(inpC.value.trim() && inpN.value.trim());
+}
+
+function getPrompts(c, n){
+  return [
+    // 0 Chrome
+    `Lee todos los comentarios visibles en esta página.\n\nEstoy construyendo Las 7 Maletas para el cliente: ${c}\nNicho: ${n}\n\nExtrae y organiza:\n\n🎒 MALETA 1 — PÚBLICO\n— Perfil demográfico inferido\n— Momento de vida en que están\n\n🎒 MALETA 2 — PROBLEMA\n— Top 5 dolores expresados textualmente\n— Frases EXACTAS que usan (sin parafrasear)\n— Intensidad emocional: rabia, frustración, miedo, vergüenza\n\n🎒 MALETA 6 — OBJECIONES\n— Razones por las que NO compran\n— Excusas recurrentes\n\n🎒 LENGUAJE DEL MERCADO\n— Palabras y jerga específica\n— Metáforas o comparaciones que repiten\n\nPrioriza volumen de menciones. Frases textuales ante todo.`,
+    // 1 Research
+    `Activa Research antes de enviar.\n\nNecesito diagnóstico completo del mercado de ${n} para el cliente ${c}.\n\nBusca en foros, artículos, redes, reviews y fuentes públicas.\n\n🎒 MALETA 1 — PÚBLICO\n— Segmentos psicográficos principales\n— Nivel de consciencia del problema\n\n🎒 MALETA 2 — PROBLEMA\n— Los 3 grandes dolores con intensidad emocional\n— ¿Cuánto llevan sin solución?\n\n🎒 MALETA 3 — SOLUCIÓN\n— Qué soluciones ya conocen\n— Qué intentaron antes que no funcionó\n\n🎒 MALETA 4 — DIFERENCIALES\n— Qué valora más este mercado en una solución ideal\n— Qué promesas están quemadas\n\n🎒 MALETA 5 — TESTIMONIOS\n— Resultados que necesitan ver antes de comprar\n— Formato de prueba social más convincente\n\n🎒 MALETA 6 — OBJECIONES\n— Top 5 objeciones reales clasificadas: precio / tiempo / confianza / creencia\n\n🎒 MALETA 7 — GARANTÍA\n— Nivel de riesgo percibido\n— Qué tipo de garantía los tranquilizaría\n\nAl final: 10 frases textuales del mercado describiendo su dolor.`,
+    // 2 Code
+    `En la carpeta /clientes/${c.replace(/\s+/g,'-')}/investigacion/ tengo archivos del cliente.\n\n1. Lee TODOS los archivos de esa carpeta\n2. Extrae y consolida en Las 7 Maletas:\n   — Maleta 1: Público (perfil psicográfico)\n   — Maleta 2: Problema (dolores con frases textuales)\n   — Maleta 3: Solución (qué han intentado)\n   — Maleta 4: Diferenciales (qué valoran más)\n   — Maleta 5: Testimonios (resultados esperados)\n   — Maleta 6: Objeciones (razones de no compra)\n   — Maleta 7: Garantía (riesgo percibido)\n\n3. Genera /output/7_maletas_${c.replace(/\s+/g,'-')}.md con:\n   — Las 7 maletas documentadas\n   — Top 20 frases textuales del mercado\n   — Nivel de consciencia predominante\n   — 3 ángulos de mensaje recomendados para los ads\n\nNo inventes datos. Si falta info escribe: "Sin datos suficientes".`,
+    // 3 Triángulo
+    `Aquí están Las 7 Maletas completadas del cliente ${c} (nicho: ${n}):\n[PEGA AQUÍ EL OUTPUT DE LA FASE 0]\n\nCon esta información define:\n\n🔺 TRIÁNGULO DORADO\n— OFERTA: propuesta de valor específica para este mercado\n— AUDIENCIA: segmento psicográfico principal con nivel de consciencia\n— MENSAJE: ángulo central y frase gancho basada en frases textuales del mercado\n\n🧠 NIVEL DE CONSCIENCIA PREDOMINANTE\n— Clasifica: Inconsciente / Del problema / De la solución / Del producto / Listo para comprar\n— Justifica con evidencia de las maletas\n— Recomienda el tipo de contenido para este nivel\n\n💡 3 ÁNGULOS DE MENSAJE\n— Ángulo 1: basado en el dolor más frecuente\n— Ángulo 2: basado en el diferencial más valorado\n— Ángulo 3: basado en la objeción más común\n\nSé específico. Usa el lenguaje textual del mercado, no lenguaje genérico de marketing.`,
+    // 4 Ciclo FB
+    `Con el Triángulo Dorado de ${c} definido, arma el plan de campaña FB Ads:\n[PEGA EL TRIÁNGULO DORADO AQUÍ]\n\nCiclo de 4 fases con distribución 60/20/10/10:\n\n📢 F1 PRESENTACIÓN (60% del presupuesto)\n— Público: frío (Inconsciente → Solución)\n— Tipos de arte recomendados para este nicho específico\n— Mensaje principal basado en Maleta 2 (Problema)\n— Copy de ejemplo\n\n🔍 F2 EVALUACIÓN (20%)\n— Público: tibio (vieron video / visitaron web)\n— Tipos de arte: testimonio, prensa, beneficios\n— Mensaje basado en Maletas 4+5 (Diferenciales+Testimonios)\n\n💰 F3 CONVERSIÓN (10%)\n— Público: caliente (carrito / clic / formulario abierto)\n— Manejo de objeciones de Maleta 6\n— Garantía de Maleta 7\n\n🚀 F4 ASCENSIÓN (10%)\n— Público: compradores actuales\n— Oportunidad de upsell/cross-sell del cliente\n\nCada fase excluye del público a las fases siguientes. Dame el plan concreto, no genérico.`,
+    // 5 Reporte docx
+    `Genera un documento Word profesional con el reporte completo de investigación de mercado para ${c}.\n\nUsa estructura SCQA:\n— Situación: contexto del mercado de ${n}\n— Complicación: los problemas no resueltos encontrados\n— Pregunta: qué necesita este mercado realmente\n— Respuesta: Las 7 Maletas documentadas\n\nIncluye:\n— Las 7 Maletas con evidencia textual\n— Top 15 frases textuales del mercado\n— Nivel de consciencia predominante\n— 3 ángulos de mensaje recomendados\n— Conclusión estratégica\n\nIdeas importantes EN CAPS. Ideas centrales en negrita.\nNo repetir información entre secciones.\nTono: estratégico y ejecutivo.`,
+    // 6 Presentación pptx
+    `Crea una presentación profesional para presentar el diagnóstico de mercado de ${c} al cliente.\n\nEstructura de slides:\n1. Portada — nombre del cliente + título del diagnóstico\n2. El mercado de ${n} hoy — contexto y situación actual\n3. Lo que el mercado realmente está gritando — top 3 dolores con frases textuales\n4. Las oportunidades invisibles — diferenciales disponibles\n5. Nuestra propuesta — Triángulo Dorado\n6. El plan de campaña — ciclo de 4 fases con presupuesto\n7. Próximos pasos — CTA claro\n\nPara cada slide:\n— Incluye UNA historia o dato impactante real del mercado\n— Extrae frases clave para exposición oral\n— Diseño limpio, datos que hablen solos\n\nIncluye notas del presentador con el contexto ampliado de cada slide.`,
+    // 7 Landing
+    `Diseña una landing page de alta conversión para ${c} en el nicho de ${n}.\n\nUsa exactamente este contenido de Las 7 Maletas:\n[PEGA LAS MALETAS 2, 4, 6 y 7 AQUÍ]\n\nEstructura obligatoria:\n1. Hero — hook con el dolor más frecuente de Maleta 2\n2. Problema — amplificación del dolor con frases textuales del mercado\n3. Solución — la transformación posible\n4. Diferenciales — por qué nosotros (Maleta 4)\n5. Prueba social — testimonios y resultados (Maleta 5)\n6. Objeciones — sección de preguntas frecuentes que maneja Maleta 6\n7. Garantía — Maleta 7 como reductor de riesgo\n8. CTA final — acción clara y específica\n\nStack: Next.js 15 + Tailwind CSS\nOptimizado para Meta Pixel + conversiones\nConectado a formulario que dispara evento Lead hacia CAPI`,
+    // 8 Scripts
+    `Crea los scripts y copy de campaña completos para ${c} (nicho: ${n}).\n\nUsa Las 7 Maletas documentadas:\n[PEGA LAS MALETAS AQUÍ]\n\n📹 SCRIPT DE VIDEO — FUNNEL 6 PASOS\nPaso 1 — Hook al sector: usa el dolor más frecuente de Maleta 2\nPaso 2 — Mayéutica: pregunta socrática que activa consciencia (SIEMPRE paso 2)\nPaso 3 — Storytelling: caso real con lenguaje textual del mercado\nPaso 4 — Posibilidad transformadora: solución diferenciada (Maletas 3+4)\nPaso 5 — Moraleja con urgencia: costo de no resolver el problema\nPaso 6 — CTA: acción clara con la garantía de Maleta 7\n\n📱 COPY PARA ADS (una versión por fase del ciclo)\n— F1 Presentación: para público frío, ángulo de problema/dolor\n— F2 Evaluación: para público tibio, ángulo de prueba social\n— F3 Conversión: para público caliente, ángulo de oferta + garantía\n\n💬 MENSAJE WHATSAPP (cierre)\nDirecto, 3 líneas máximo, con emojis, basado en la objeción más común de Maleta 6`
+  ];
+}
+
+let prompts = [];
+
+function updatePrompts(){
+  const c = inpC.value.trim() || 'CLIENTE';
+  const n = inpN.value.trim() || 'NICHO';
+  prompts = getPrompts(c, n);
+  for(let i=0;i<9;i++){
+    const el = document.getElementById('p'+i);
+    if(el) el.textContent = prompts[i];
+  }
+}
+
+function startFlow(){
+  cliente = inpC.value.trim();
+  nicho = inpN.value.trim();
+  prompts = getPrompts(cliente, nicho);
+  document.getElementById('client-header-name').textContent = cliente + ' — ' + nicho;
+  document.getElementById('flow-content').style.display = 'block';
+  document.getElementById('setup-section').style.display = 'none';
+  for(let i=0;i<9;i++){
+    document.getElementById('p'+i).textContent = prompts[i];
+  }
+  toggleStep(0);
+  updateProgress();
+}
+
+function toggleStep(i){
+  open[i] = !open[i];
+  document.getElementById('sb'+i).classList.toggle('open', open[i]);
+  document.getElementById('exp'+i).classList.toggle('open', open[i]);
+  if(open[i]) document.getElementById('sc'+i).classList.add('active-step');
+  else document.getElementById('sc'+i).classList.remove('active-step');
+}
+
+function markDone(i){
+  done[i] = !done[i];
+  const chk = document.getElementById('chk'+i);
+  const btn = document.getElementById('md'+i);
+  const card = document.getElementById('sc'+i);
+  if(done[i]){
+    chk.textContent = '✓';
+    chk.classList.add('done');
+    btn.classList.add('is-done');
+    btn.innerHTML = '✓ &nbsp;Completado';
+    card.classList.add('completed');
+    card.classList.remove('active-step');
+    if(open[i]) toggleStep(i);
+    // auto-open next
+    const next = i+1;
+    if(next < 9 && !open[next]) toggleStep(next);
+  } else {
+    chk.textContent = '';
+    chk.classList.remove('done');
+    btn.classList.remove('is-done');
+    btn.innerHTML = '◯ &nbsp;Marcar como completado';
+    card.classList.remove('completed');
+  }
+  updateProgress();
+}
+
+function copyP(i){
+  navigator.clipboard.writeText(prompts[i]).then(()=>{
+    const btn = document.getElementById('cpb'+i);
+    btn.textContent = '✓ copiado';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='copiar';btn.classList.remove('copied');}, 2000);
+  });
+}
+
+function updateProgress(){
+  const total = done.filter(Boolean).length;
+  document.getElementById('prog-count').textContent = total + '/9';
+  for(let i=0;i<9;i++){
+    const dot = document.getElementById('pd'+i);
+    if(done[i]) dot.classList.add('done');
+    else dot.classList.remove('done');
+  }
+}
+
+function resetFlow(){
+  done.fill(false);
+  open.fill(false);
+  document.getElementById('flow-content').style.display = 'none';
+  document.getElementById('setup-section').style.display = 'block';
+  inpC.value = '';
+  inpN.value = '';
+  startBtn.disabled = true;
+  document.getElementById('client-header-name').textContent = 'Ingresa un cliente para comenzar';
+  updateProgress();
+}
+</script>
+</body>
+</html>
